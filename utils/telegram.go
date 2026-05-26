@@ -42,7 +42,29 @@ func TgRegisterBotCommands(b *gotgbot.Bot, commands ...gotgbot.BotCommand) error
 }
 
 func TgGetOrMakeThreadFromWa_String(waChatIdString string, tgChatId int64, threadName string) (int64, error) {
-	return 0, nil
+	if state.State.Config.Telegram.FlatRouting {
+		return 0, nil
+	}
+
+	threadId, found, err := database.ChatThreadGetTgFromWa(waChatIdString, tgChatId)
+	if err != nil {
+		return 0, err
+	} else if found {
+		return threadId, nil
+	}
+
+	tgBot := state.State.TelegramBot
+	newTopic, err := tgBot.CreateForumTopic(tgChatId, threadName, nil)
+	if err != nil {
+		return 0, err
+	}
+
+	err = database.ChatThreadAddNewPair(waChatIdString, tgChatId, int64(newTopic.MessageThreadId))
+	if err != nil {
+		return 0, err
+	}
+
+	return int64(newTopic.MessageThreadId), nil
 }
 
 func TgGetOrMakeThreadFromWa(waChatId waTypes.JID, tgChatId int64, threadName string) (int64, error) {

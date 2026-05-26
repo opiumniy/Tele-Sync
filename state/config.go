@@ -1,4 +1,4 @@
-package state
+﻿package state
 
 import (
 	"fmt"
@@ -38,6 +38,7 @@ type Config struct {
 		SkipStartupMessage  bool    `yaml:"skip_startup_message"`
 		SpoilerViewOnce     bool    `yaml:"spoiler_as_viewonce"`
 		Reactions           bool    `yaml:"reactions"`
+		FlatRouting         bool    `yaml:"flat_routing"`
 	} `yaml:"telegram"`
 
 	WhatsApp struct {
@@ -152,3 +153,4 @@ func (cfg *Config) SetDefaults() {
 
 	cfg.Telegram.ConfirmationType = "emoji"
 }
+

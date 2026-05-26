@@ -31,6 +31,7 @@ telegram:
   spoiler_as_viewonce: true               # If set to true, then all the spoiler files will be sent as view-once messages
 
   reactions: true                         # If set to true, will send you new text messages whenever a user reacts to your message or revokes their reaction.
+  flat_routing: false                     # If set to true, disables Forum Topics and routes all WhatsApp chats to the main chat (no threads)
 
 whatsapp:
   session_name: watgbridge        # This will appear in your Linked Devices in mobile app

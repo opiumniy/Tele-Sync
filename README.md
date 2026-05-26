@@ -1,75 +1,179 @@
-# Tele-Sync
+# 🌉 Tele-Sync — WhatsApp ↔ Telegram Bridge
 
-[![Gitter](https://img.shields.io/gitter/room/nwjs/nw.js.svg)](https://gitter.im/wat-bridge/Lobby)
+A self-hosted bridge that **forwards your WhatsApp messages to Telegram** and lets you reply back — all from Telegram. Built on top of [watgbridge](https://github.com/akshettrj/watgbridge) with extra patches for flat-chat routing and group-to-group forwarding.
 
-A bridge between WhatsApp and Telegram.
+> ⚠️ **DISCLAIMER:** This project is not affiliated with WhatsApp or Telegram. Using unofficial WhatsApp clients may result in your account being banned. **Use at your own risk.**
 
-This creates two listeners, one for WhatsApp and another for a Telegram bot. When the WhatsApp listener receives a message it relays the content to the Telegram bot, which sends it to the owner. In order to send a message to WhatsApp, the owner must do so through the Telegram bot.
+---
 
-Basically when a channel or a group posts anything this bot convert that into api and respond auto to whatsapp and sync further.
-**IMPORTANT WARNING:** it is possible that WhatApp will end up blocking the phone number used to connect through yowsup, **use at your own risk**.
+## ✨ What it does
 
-## Usage
+- 📨 Forwards incoming WhatsApp messages (DMs + groups) → Telegram
+- 💬 Lets you reply from Telegram → sends message back to WhatsApp
+- 🗂️ **Flat routing mode** — each WhatsApp group maps to its own Telegram chat (no Forum Topics needed)
+- 📲 Also syncs messages you send from your other WhatsApp devices
+- 🔁 React to messages, tag @everyone, send stickers and files — all supported
 
-```
-$ virtualenv -p python3 venv
-$ . venv/bin/activate
-$ pip install -r requirements.txt
-$ TELE_CONF=path_to_conf_file python telesync.py
-```
+---
 
-**NOTE:** For some reason, yowsup has issues when receiving messages. The workaround mentioned at <https://github.com/tgalal/yowsup/issues/1613#issuecomment-247801568> works, so instead of installing yowsup from requirements, use:
+## 🖥️ Requirements
 
-```
-$ pip install -U git+https://github.com/tawanda/yowsup.git
-```
+| Tool | Version | Notes |
+|------|---------|-------|
+| Go | ≥ 1.21 | [install guide](https://go.dev/dl/) |
+| git | any | standard |
+| gcc | any | needed by cgo |
+| ffmpeg | any | for video/audio conversion |
+| imagemagick | optional | for sticker conversion |
 
-## Configuration
+---
 
-```conf
-[tg]
-owner = ONWER_ID
-token = TOKEN
+## 🚀 Step-by-Step Setup
 
-[wa]
-phone = PHONE_NUMBER
-password = PASSWORD
+### 1. Create a Telegram Bot
 
-[db]
-path = PATH_TO_DB
-```
+1. Open Telegram, find **@BotFather**
+2. Send /newbot, give it a name and username
+3. Copy the **bot token** — you will need it in config.yaml
 
-The Telegram token is obtained by talking to the *BotFather* through Telegram and creating a bot, while the owner ID can be obtained by using the `/me` command.
+### 2. Get your Telegram user/group ID
 
-The WhatsApp phone must include the country code (without any additional characters such as `+`, only the digits) followed by the number, for instance `49xxxxxxxxx`, and the password can be obtained through the [Yowsup cli interface](https://github.com/tgalal/yowsup/wiki/yowsup-cli-2.0).
+- Forward any message to **@userinfobot** to get your personal Telegram ID
+- To get a group/channel ID: add **@userinfobot** to the group, or use [@getidsbot](https://t.me/getidsbot)
 
-Lastly, the database path is the full path to the file that will contain blacklist and contacts. Note that this path should be readable/writable by the user that executes the application.
+### 3. Clone and build
 
-## Simulate different chats
+`ash
+git clone https://github.com/opiumniy/Tele-Sync.git
+cd Tele-Sync
+go build
+`
 
-By default, communication with WhatsApp contacts is done through the **chat with the Telegram bot** (ie. using the `/send <user> <msg>` command). It is possible to simulate having different conversations with WhatsApp contacts by using **empty group chats in Telegram**. This works as follows:
+If the build succeeds, you will have a ./watgbridge binary in the folder.
 
-1. Create an empty group chat
-2. Invite the Telegram bot to the empty chat
-3. Get chat id with the `/me` command
-4. Bind a WhatsApp contact to the group with `/bind <contact name> <group id>`, where `<group id>` is the id obtained in **step 3**
+### 4. Configure
 
-Now every message sent to that group will be relayed to the bound WhatsApp contact automatically and all the messages the WhatsApp bot receives from that contact will be send to the bound Telegram group.
+`ash
+cp sample_config.yaml config.yaml
+`
 
-## Example
+Open config.yaml in any text editor and fill in the required fields:
 
-![Communication example](screenshot.png)
+`yaml
+telegram:
+  bot_token: 123456:ABC-your-bot-token-here
+  owner_id: 123456789          # your personal Telegram user ID
+  target_chat_id: -1001234567  # Telegram group where WA messages land
 
-## License
+whatsapp:
+  # Optional: map a specific WhatsApp group to a specific Telegram chat
+  # group_jid: 120363XXXXX@g.us
+  # group_telegram_id: -1009876543
 
-This code is released under the MIT license (see LICENSE).
+send_my_messages_from_other_devices: true   # sync your own WA messages
+`
 
-```
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
+> 💡 All config options are documented with comments inside sample_config.yaml — read it!
+
+### 5. First run (WhatsApp login)
+
+`ash
+./watgbridge
+`
+
+On first launch the bot will display a **QR code** in the terminal AND save it as qrcode.png in the project folder.
+
+Scan the QR code with your WhatsApp app:
+> **WhatsApp → Settings → Linked Devices → Link a Device**
+
+Once scanned, the bot logs in and starts forwarding messages.
+
+### 6. Run in background (optional but recommended)
+
+A sample systemd service file is included: watgbridge.service.sample
+
+`ash
+sudo cp watgbridge.service.sample /etc/systemd/system/watgbridge.service
+# Edit the file: set User= and ExecStart= to match your paths
+sudo systemctl daemon-reload
+sudo systemctl enable --now watgbridge
+`
+
+Or just use 
+ohup for a quick start:
+
+`ash
+nohup ./watgbridge > watgbridge.log 2>&1 &
+tail -f watgbridge.log   # watch logs
+`
+
+---
+
+## 🗂️ Flat Routing Mode (Group → Chat)
+
+This fork adds **flat routing**: instead of using Telegram Forum Topics, each WhatsApp group is forwarded to a **dedicated Telegram chat**.
+
+To enable group routing, set in config.yaml:
+
+`yaml
+whatsapp:
+  group_jid: 120363419133044124@g.us   # WhatsApp group JID
+  group_telegram_id: -1003979059641       # Telegram chat to forward to
+`
+
+**How to find a WhatsApp group JID:**
+- Check the bot logs on first run — it prints JIDs for all groups you are in
+- Or run: grep @g.us watgbridge.log | head -20
+
+---
+
+## 🔍 Finding WhatsApp Group JIDs
+
+Run the bot once and send a message in the group. The JID will appear in the logs:
+
+`
+INFO  received message from 120363419133044124@g.us
+`
+
+---
+
+## 🐛 Troubleshooting
+
+| Problem | Fix |
+|---------|-----|
+| dial tcp: lookup api.telegram.org | Your server DNS is broken. Add 149.154.167.220 api.telegram.org to /etc/hosts |
+| Bad Request: the chat is not a forum | Flat routing is active — make sure 	arget_chat_id is a plain group, not a Forum |
+| Bot does not respond | Check watgbridge.log for errors; restart the bot |
+| QR code expired | Restart the bot — a new QR will be generated |
+| WhatsApp disconnects frequently | Normal behavior — the systemd service auto-restarts every 24 h |
+
+---
+
+## 📁 Project Structure
+
+`
+.
+├── main.go                  # entry point
+├── config.yaml              # your config (not committed)
+├── sample_config.yaml       # config template with comments
+├── whatsapp/
+│   ├── client.go            # WA login, QR generation
+│   └── handlers.go          # WA → Telegram forwarding logic
+├── telegram/
+│   └── handlers.go          # Telegram → WA forwarding logic
+├── utils/
+│   └── telegram.go          # helper: flat routing (no forum topics)
+└── watgbridge.service.sample # systemd service template
+`
+
+---
+
+## 🤝 Contributing
+
+PRs are welcome! This fork focuses on flat-routing and group-to-chat mapping. If you have improvements, open a PR against this repo or the [upstream project](https://github.com/akshettrj/watgbridge).
+
+---
+
+## 📜 License
+
+MIT — see [LICENSE](./LICENSE)

@@ -62,7 +62,7 @@ func MsgIdGetWaFromTg(tgChatId, tgMsgId, tgThreadId int64) (msgId, participantId
 	db := state.State.Database
 
 	var bridgePair MsgIdPair
-	res := db.Where("tg_chat_id = ? AND tg_msg_id = ? AND tg_thread_id = ?", tgChatId, tgMsgId, tgThreadId).Find(&bridgePair)
+	res := db.Where("tg_chat_id = ? AND tg_msg_id = ?", tgChatId, tgMsgId).Find(&bridgePair)
 
 	return bridgePair.ID, bridgePair.ParticipantId, bridgePair.WaChatId, res.Error
 }

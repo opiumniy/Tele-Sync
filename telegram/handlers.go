@@ -160,7 +160,10 @@ func BridgeTelegramToWhatsAppHandler(b *gotgbot.Bot, c *ext.Context) error {
 	var err error
 
 	if msgToReplyTo != nil && msgToReplyTo.ForumTopicCreated == nil {
+		
+		state.State.Logger.Sugar().Infof("Vlad debug: EffectiveChat.Id=%v, ReplyTo.MessageId=%v, Forward.MessageThreadId=%v", c.EffectiveChat.Id, msgToReplyTo.MessageId, msgToForward.MessageThreadId)
 		stanzaID, participantID, waChatID, err = database.MsgIdGetWaFromTg(c.EffectiveChat.Id, msgToReplyTo.MessageId, msgToForward.MessageThreadId)
+
 		if err != nil {
 			return utils.TgReplyWithErrorByContext(b, c, "Failed to retreive a pair from database", err)
 		} else if stanzaID == "" {

@@ -146,6 +146,10 @@ func NewWhatsAppClient() error {
 				)
 			}
 		}
+
+		if !client.IsLoggedIn() {
+			return fmt.Errorf("WhatsApp login timed out: QR code was not scanned")
+		}
 	} else {
 		err = client.Connect()
 		if err != nil {
